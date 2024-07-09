@@ -4,14 +4,12 @@ import com.acpurrinos.literalura.model.Datos;
 import com.acpurrinos.literalura.model.DatosAutor;
 import com.acpurrinos.literalura.model.DatosLibro;
 import com.acpurrinos.literalura.model.Libro;
+import com.acpurrinos.literalura.repository.LibroRepository;
 import com.acpurrinos.literalura.service.ConsumoAPI;
 import com.acpurrinos.literalura.service.ConvierteDatos;
 import com.fasterxml.jackson.core.ObjectCodec;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Principal {
@@ -22,6 +20,10 @@ public class Principal {
     private final String URL_BASE = "https://gutendex.com/books/?search=";
     private final List<DatosLibro> librosEncontrados = new ArrayList<>();
     private final List<DatosAutor> autoresEncontrados = new ArrayList<>();
+private LibroRepository repositorio;
+    public Principal(LibroRepository repository) {
+        this.repositorio=repository;
+    }
 
     public void inicia() {
         int opcion = -100;
@@ -32,10 +34,12 @@ public class Principal {
                 opcion = Integer.parseInt(teclado.nextLine());
                 switch (opcion) {
                     case 1:
-                        buscaLibroPorTitulo();
+                        buscarLibroPorTitulo();
+                        //buscaLibroPorTitulo();
                         break;
                     case 2:
-                        listaLibrosEncontrados();
+                        //listaLibrosEncontrados();
+                        mostrarLibrosBuscados();
                         break;
                     case 3:
                         muestraNombresDeAutores();
@@ -59,50 +63,56 @@ public class Principal {
 
     private void mostrarMenu() {
         System.out.println("""
-                ************************************
-                          LITERALURA - BIENVENIDO
-                ************************************
-                Elija una opción:
                 
+                Elija una opción:
                 1 --> Buscar libro por título.
                 2 --> Listar libros buscados.
                 3 --> Listar autores de los libros buscados.
                 4 --> Listar autores vivos en un determinado año.
-                
-                0 -> SALIR
-                
+                0 -> SALIR.
                 """);
     }
 
-    public void buscaLibroPorTitulo() {
+    private Datos getDatos(){
         System.out.println("Ingrese el título del libro o parte de él:");
         String titulo = teclado.nextLine().trim().toLowerCase();
 
         String jsonTitulo = consumoAPI.obtenerDatos(URL_BASE + titulo.replace(" ", "+"));
         Datos datos = conversor.obtenerDatos(jsonTitulo, Datos.class);
 
-        Optional<DatosLibro> libroBuscado = datos.libros().stream().findFirst();
-        if (libroBuscado.isPresent()) {
-            librosEncontrados.add(libroBuscado.get());
-            autoresEncontrados.addAll(libroBuscado.get().autor());
-            System.out.println("\nLibro encontrado:\n" + libroBuscado.get());
-        } else {
-            System.out.println("No se encontró ningún libro con ese título.");
-        }
+        return datos;
     }
 
-    public void listaLibrosEncontrados() {
-        System.out.println("LISTADO DE LIBROS BUSCADOS Y ENCONTRADOS:");
-        librosEncontrados.forEach(libro -> {
-            System.out.println(
-                    "----- LIBRO -----\n" +
-                            "Titulo: " + libro.titulo() + "\n" +
-                            "Autores: " + obtenerNombresAutores(libro.autor()) + "\n" +
-                            "Idiomas: " + libro.idiomas().stream().collect(Collectors.joining(", ")) + "\n" +
-                            "Número de descargas: " + libro.numeroDeDescargas() + "\n" +
-                            "-----------------\n"
-            );
-        });
+    private void buscarLibroPorTitulo(){
+        Datos datosLibro = getDatos();
+
+        Optional<DatosLibro> libroBuscado = datosLibro.libros().stream().findFirst();
+        if (libroBuscado.isPresent()) {
+            DatosLibro libro = libroBuscado.get();
+            Libro l = new Libro(libro);
+            repositorio.save(l);
+            librosEncontrados.add(libro);
+            autoresEncontrados.addAll(libro.autor());
+            System.out.println(libro);
+            System.out.println(l);
+            //System.out.println(librosEncontrados.stream().map(l->new Libro(l)).collect(Collectors.toList()));
+} else {
+            System.out.println("No se encontró ningún libro con ese título.");
+        }
+
+    }
+
+
+    private void mostrarLibrosBuscados(){
+        List<Libro> libros = repositorio.findAll();
+        System.out.println(libros);
+
+
+       /* List<Libro> libros = new ArrayList<>();
+        libros = librosEncontrados.stream().map(l->new Libro(l)).collect(Collectors.toList());
+        System.out.println(libros);
+*/
+
     }
 
     private String obtenerNombresAutores(List<DatosAutor> autores) {
@@ -125,3 +135,55 @@ public class Principal {
         // Implementar lógica para listar autores vivos en un año específico
     }
 }
+/*
+    public void buscaLibroPorTitulo() {
+        System.out.println("Ingrese el título del libro o parte de él:");
+        String titulo = teclado.nextLine().trim().toLowerCase();
+
+        String jsonTitulo = consumoAPI.obtenerDatos(URL_BASE + titulo.replace(" ", "+"));
+        Datos datos = conversor.obtenerDatos(jsonTitulo, Datos.class);
+
+
+        Optional<DatosLibro> libroBuscado = datos.libros().stream().findFirst();
+        if (libroBuscado.isPresent()) {
+            DatosLibro libro = libroBuscado.get();
+            librosEncontrados.add(libro);
+            autoresEncontrados.addAll(libro.autor());
+
+            // Formatear la salida del libro encontrado
+            System.out.println("\nLibro encontrado:");
+            System.out.println("Título: " + libro.titulo());
+            System.out.println("Autores: " + obtenerNombresAutores(libro.autor()));
+            System.out.println("Idiomas: " + libro.idiomas().stream().collect(Collectors.joining(", ")));
+            System.out.println("Número de descargas: " + libro.numeroDeDescargas());
+           // librosEncontrados.add(libroBuscado.get());
+           // autoresEncontrados.addAll(libroBuscado.get().autor());
+           // System.out.println("\nLibro encontrado:\n" + libroBuscado.get());
+           // System.out.println(libroBuscado.);
+        } else {
+            System.out.println("No se encontró ningún libro con ese título.");
+        }
+    }*/
+/*
+    public void listaLibrosEncontrados() {
+        System.out.println("LISTADO DE LIBROS BUSCADOS Y ENCONTRADOS:");
+        librosEncontrados.forEach(libro -> {
+            System.out.println(
+                    "título=" + libro.titulo().toUpperCase() + "; " +
+                            " autores=" + obtenerNombresAutores(libro.autor()).toUpperCase() + ";" +
+                            " Idiomas=" + libro.idiomas().stream().collect(Collectors.joining(", ")).toUpperCase() + "; " +
+                            " Número de descargas=" + libro.numeroDeDescargas() + "; "
+
+            );
+        });
+    }*/
+
+/*
+            // Formatear la salida del libro encontrado
+            System.out.println("\nLibro encontrado:");
+            System.out.println("Título: " + libro.titulo());
+            System.out.println("Autores: " + obtenerNombresAutores(libro.autor()));
+            System.out.println("Idiomas: " + libro.idiomas().stream().collect(Collectors.joining(", ")));
+            System.out.println("Número de descargas: " + libro.numeroDeDescargas());
+            System.out.println("Categoria: "+libro.categoria().stream().findFirst().orElse("sin categorizar"));
+        */
