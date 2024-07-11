@@ -1,15 +1,17 @@
 package com.acpurrinos.literalura.model;
 
+import com.acpurrinos.literalura.repository.LibroRepository;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 @Entity //es para que jpa sepa q esta es una tabla de la bd
-@Table (name = "Libros") // esto le indica con que nombre se va a guardar en la bd
+@Table(name = "libros") // esto le indica con que nombre se va a guardar en la bd
 public class Libro {
 
     @Id
@@ -20,26 +22,20 @@ public class Libro {
     private String titulo;
     private Integer numeroDeDescargas;
     // private List<String> idiomas;
-
     @Enumerated(EnumType.STRING)
     private Idioma idiomas;
-    @Transient
-    private Optional<DatosAutor> autor;
+    @OneToMany(mappedBy = "libro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Autor> autor;
 
-    //private DatosAutor autor;
-
-    @Transient
     private List<String> categoria;
     private Long idAPI;
 
     public Libro(){
 
-    }//PARA USAR JPA TODAS LAS CLASES - ENTIDADES TIENEN Q TENER UN CONSTRUCTOR PREDETERMINADO
+    }//PARA USAR JPA TODAS LAS CLASES - ENTIDADES TIENEN QUE TENER UN CONSTRUCTOR PREDETERMINADO
 
     public Libro(DatosLibro datosLibro) {
         this.titulo = datosLibro.titulo();
-        this.autor = datosLibro.autor().stream().findFirst();
-        //this.autor=datosLibro.autor();
         this.numeroDeDescargas = datosLibro.numeroDeDescargas();
         this.idAPI = datosLibro.id();
         if (datosLibro.categoria() != null && !datosLibro.categoria().isEmpty()) {
@@ -47,46 +43,53 @@ public class Libro {
         } else {
             this.categoria = List.of("Desconocida"); // Asignar una lista con "Desconocida" si está vacía o nula
         }
-        //this.categoria = datosLibro.categoria();
-        //this.idiomas=Idioma.fromString(datosLibro.idiomas());
+
         if (!datosLibro.idiomas().isEmpty()) {
             this.idiomas = Idioma.fromString(datosLibro.idiomas().get(0));
         } else {
             throw new IllegalArgumentException("La lista de idiomas está vacía.");
+        };
+
+        if (datosLibro.autor() != null) {
+            this.autor = new ArrayList<>();
+            for (DatosAutor datosAutor : datosLibro.autor()) {
+                Autor autor = new Autor(datosAutor);
+                addAutor(autor); // Agregar autor con relación bidireccional establecida
+            }
+
+
+    }}
+
+
+        public void addAutor(Autor autor) {
+            if (autor != null) {
+                if (this.autor == null) {
+                    this.autor = new ArrayList<>();
+                }
+                this.autor.add(autor);
+                autor.setLibro(this); // Establecer el libro en el autor
+            }
         }
-    }
 
 
     @Override
-
     public String toString() {
-        /*String categoriaPrincipal = categoria.isEmpty() ? "Sin categoría" : categoria.get(0);
-        String autorString = autor.map(DatosAutor::nombre).orElse("Desconocido");
-        return
-                "titulo=" + titulo.toUpperCase() +
-                        ",  autor=" + autorString.toUpperCase() +
-                        ",  idioma=" + idiomas +
-                        ",  categoria=" + categoriaPrincipal.toUpperCase() +
-                        ",  cantidad de descargas=" + numeroDeDescargas +
-                        ",  id=" + idAPI +
-                        "\n"
-                ;
-    }*/
+        String categoriaPrincipal = categoria != null && !categoria.isEmpty() ? categoria.get(0) : "Sin categoría";
 
-            String categoriaPrincipal = categoria != null && !categoria.isEmpty() ? categoria.get(0) : "Sin categoría";
 
-        String autorString = autor != null && autor.isPresent() ? autor.get().nombre() : "Desconocido";
-            //String autorString = autor.map(DatosAutor::nombre).orElse("Desconocido");
-            return String.format(
-                    "titulo=%s, autor=%s, idioma=%s, categoria=%s, cantidad de descargas=%d, id=%d\n",
-                    titulo.toUpperCase(),
-                    autorString.toUpperCase(),
-                    idiomas,
-                    categoriaPrincipal.toUpperCase(),
-                    numeroDeDescargas,
-                    idAPI
-            );
-        }
+        return String.format(
+                "titulo=%s,  idioma=%s, categoria=%s, cantidad de descargas=%d, id=%d\n",
+                titulo.toUpperCase(),
+                //autor.toString(),
+
+                idiomas,
+                categoriaPrincipal.toUpperCase(),
+                numeroDeDescargas,
+                idAPI
+
+        );
+    }
+
 
     public Long getId() {
         return id;
@@ -120,13 +123,7 @@ public class Libro {
         this.idiomas = idiomas;
     }
 
-    public Optional<DatosAutor> getAutor() {
-        return autor;
-    }
 
-    public void setAutor(Optional<DatosAutor> autor) {
-        this.autor = autor;
-    }
 
     public List<String> getCategoria() {
         return categoria;
@@ -143,4 +140,18 @@ public class Libro {
     public void setIdAPI(Long idAPI) {
         this.idAPI = idAPI;
     }
+
+    public List<Autor> getAutor() {
+        return autor;
+    }
+
+
+
+    public void setAutor(List<Autor> autor) {
+        autor.forEach(a->a.setLibro(this));
+        this.autor = autor;}
+
+
 }
+
+

@@ -22,7 +22,17 @@ public enum Idioma {
         }
         throw new IllegalArgumentException("Ningún lenguaje encontrado: " + text);
     }
-
+    public String getIdiomaAPI() {
+        return idiomaAPI;
+    }
+    public static Idioma fromIdiomaAPI(String idiomaAPI) {
+        for (Idioma idioma : Idioma.values()) {
+            if (idioma.getIdiomaAPI().equalsIgnoreCase(idiomaAPI)) {
+                return idioma;
+            }
+        }
+        throw new IllegalArgumentException("Ningún idioma encontrado para el código: " + idiomaAPI);
+    }
 
 }
 

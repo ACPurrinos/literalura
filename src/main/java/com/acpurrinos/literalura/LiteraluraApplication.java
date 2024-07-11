@@ -1,6 +1,7 @@
 package com.acpurrinos.literalura;
 
 import com.acpurrinos.literalura.principal.Principal;
+import com.acpurrinos.literalura.repository.AutorRepository;
 import com.acpurrinos.literalura.repository.LibroRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -12,6 +13,9 @@ public class LiteraluraApplication implements CommandLineRunner {
 @Autowired //inyección de dependencias para poder usar
 //JPA
 private LibroRepository repository;
+	@Autowired
+	private AutorRepository autorRepository;
+
 	public static void main(String[] args) {
 		SpringApplication.run(LiteraluraApplication.class, args);
 	}
@@ -22,7 +26,7 @@ private LibroRepository repository;
                 ************************************
                       LITERALURA - BIENVENIDO
                 ************************************""");
-		Principal principal = new Principal(repository);
+		Principal principal = new Principal(repository, autorRepository);
 		principal.inicia();
 
 	}
