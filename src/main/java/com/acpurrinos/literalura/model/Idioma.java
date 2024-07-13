@@ -2,7 +2,7 @@ package com.acpurrinos.literalura.model;
 
 public enum Idioma {
 
-    ESPAÑOL("es"),
+    ESPANOL("es"),
 
     INGLES("en"),
     FRANCES("fr"),
